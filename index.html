@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Justicore: worker protection and accountability platform for Kenya's tea sector. Operations dashboard.">
+<!--
+  Justicore operations dashboard
+  Single self-contained file: HTML, CSS and JavaScript inline. Open in any modern browser.
+  Structure for future development:
+    1. <style>            design tokens (light and dark) and components
+    2. <body> markup      shell, sidebar, and one <section data-v> per view
+    3. <script> Sample data     seeded generator; replace with API calls to the case service
+    4. <script> Render functions one per view (renderKPIs, renderCases, renderAccountability ...)
+    5. <script> Wiring          navigation, filters, drawer and modal handlers
+  Data: with CONFIG.API_URL empty the page shows fictional sample data.
+        With CONFIG.API_URL set it signs in with an access key and shows live cases
+        from the Google Sheet behind the Apps Script backend (see README.md).
+-->
+<title>Justicore</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F2F4F1; --surface:#FFFFFF; --surface-2:#F7F8F6; --sunken:#EAEEE9;
+  --border:#DCE1DA; --border-strong:#C4CCC1;
+  --ink:#12201A; --ink-2:#4A5750; --ink-3:#76827B;
+  --brand:#14604A; --brand-hover:#0F503D; --brand-ink:#FFFFFF; --brand-soft:#E1EEE7; --brand-text:#14604A;
+  --side-bg:#0E2820; --side-ink:#DDE9E2; --side-ink-2:#8DA79A; --side-hover:#15362B; --side-active:#1C4637; --leaf:#86D3AC;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+  --good-ink:#0B6A2C; --warn-ink:#865700; --serious-ink:#9A4520; --crit-ink:#A82828;
+  --good-bg:#E3F3E5; --warn-bg:#FBF0D5; --serious-bg:#FBE9E0; --crit-bg:#F9E2E0;
+  --grid:#E6EAE4; --axis:#8A958E;
+  --hm0:#EDF3FB; --hm1:#cde2fb; --hm2:#9ec5f4; --hm3:#6da7ec; --hm4:#3987e5; --hm5:#1c5cab; --hm-hi:#FFFFFF;
+  --shadow:0 1px 2px rgba(18,32,26,.05), 0 4px 16px rgba(18,32,26,.05);
+  --overlay:rgba(12,22,17,.38);
+  --f-display:'Bricolage Grotesque', 'Figtree', system-ui, sans-serif;
+  --f-body:'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-mono:'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D1310; --surface:#141B17; --surface-2:#18201C; --sunken:#1B2420;
+    --border:#25302A; --border-strong:#34423A;
+    --ink:#E6EDE9; --ink-2:#A7B4AC; --ink-3:#7C8A82;
+    --brand:#3DAF86; --brand-hover:#4BC195; --brand-ink:#06140E; --brand-soft:#16332A; --brand-text:#6FCFA6;
+    --side-bg:#09110D; --side-hover:#13231C; --side-active:#193428;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+    --good-ink:#62CF7E; --warn-ink:#F2C14E; --serious-ink:#F2A585; --crit-ink:#F28B8B;
+    --good-bg:#13301C; --warn-bg:#332808; --serious-bg:#361E14; --crit-bg:#3A1616;
+    --grid:#212B26; --axis:#6E7B73;
+    --hm0:#18212B; --hm1:#173a66; --hm2:#1c5cab; --hm3:#2a78d6; --hm4:#5598e7; --hm5:#9ec5f4; --hm-hi:#0A1320;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+    --overlay:rgba(0,0,0,.55);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D1310; --surface:#141B17; --surface-2:#18201C; --sunken:#1B2420;
+  --border:#25302A; --border-strong:#34423A;
+  --ink:#E6EDE9; --ink-2:#A7B4AC; --ink-3:#7C8A82;
+  --brand:#3DAF86; --brand-hover:#4BC195; --brand-ink:#06140E; --brand-soft:#16332A; --brand-text:#6FCFA6;
+  --side-bg:#09110D; --side-hover:#13231C; --side-active:#193428;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500;
+  --good-ink:#62CF7E; --warn-ink:#F2C14E; --serious-ink:#F2A585; --crit-ink:#F28B8B;
+  --good-bg:#13301C; --warn-bg:#332808; --serious-bg:#361E14; --crit-bg:#3A1616;
+  --grid:#212B26; --axis:#6E7B73;
+  --hm0:#18212B; --hm1:#173a66; --hm2:#1c5cab; --hm3:#2a78d6; --hm4:#5598e7; --hm5:#9ec5f4; --hm-hi:#0A1320;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+  --overlay:rgba(0,0,0,.55);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
+.mono{font-family:var(--f-mono);font-feature-settings:"zero" 0}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- Shell ---------- */
+.shell{display:grid;grid-template-columns:244px minmax(0,1fr);min-height:100dvh}
+.side{background:var(--side-bg);color:var(--side-ink);position:sticky;top:0;height:100dvh;display:flex;flex-direction:column;padding:20px 14px 16px;gap:22px}
+.brandmark{display:flex;align-items:center;gap:10px;padding:2px 8px}
+.brandmark svg{flex:none}
+.brandmark .wm{font-family:var(--f-display);font-weight:700;font-size:21px;letter-spacing:-.02em;color:#fff}
+.brandmark .sub{display:block;font-size:11px;color:var(--side-ink-2);letter-spacing:.02em;margin-top:1px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav-label{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--side-ink-2);padding:0 10px 6px}
+.nav button{display:flex;align-items:center;gap:11px;width:100%;border:0;background:transparent;color:var(--side-ink);padding:9px 10px;border-radius:8px;font-weight:500;font-size:14px;text-align:left;white-space:nowrap}
+.nav button svg{flex:none;opacity:.8}
+.nav button:hover{background:var(--side-hover)}
+.nav button[aria-current="page"]{background:var(--side-active);color:#fff}
+.nav button[aria-current="page"] svg{opacity:1;color:var(--leaf)}
+.nav .count{margin-left:auto;font-size:11.5px;font-weight:600;background:#C7362F;color:#fff;border-radius:999px;padding:1px 7px;font-variant-numeric:tabular-nums}
+.side-foot{margin-top:auto;display:flex;flex-direction:column;gap:12px}
+.hub{border:1px solid #21443A;border-radius:10px;padding:11px 12px;font-size:12.5px;color:var(--side-ink-2);line-height:1.5}
+.hub strong{color:var(--side-ink);font-weight:600;display:block;font-size:13px}
+.me{display:flex;align-items:center;gap:10px;padding:0 6px}
+.avatar{width:32px;height:32px;border-radius:50%;background:#2B5A49;color:#fff;display:grid;place-items:center;font-weight:600;font-size:12.5px;flex:none}
+.me .n{font-weight:600;font-size:13px;color:#fff}
+.me .r{font-size:11.5px;color:var(--side-ink-2)}
+
+.main{min-width:0;display:flex;flex-direction:column}
+.topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:12px 28px}
+.search{flex:1;max-width:460px;position:relative}
+.search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--ink-3)}
+.search input{width:100%;border:1px solid var(--border);background:var(--surface);border-radius:9px;padding:9px 12px 9px 36px;font-size:13.5px}
+.search input::placeholder{color:var(--ink-3)}
+.top-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
+.icon-btn{position:relative;width:38px;height:38px;border-radius:9px;border:1px solid var(--border);background:var(--surface);display:grid;place-items:center;color:var(--ink-2)}
+.icon-btn:hover{border-color:var(--border-strong);color:var(--ink)}
+.icon-btn .dot{position:absolute;top:7px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--crit);box-shadow:0 0 0 2px var(--surface)}
+.btn{display:inline-flex;align-items:center;gap:7px;border-radius:9px;padding:9px 14px;font-weight:600;font-size:13.5px;border:1px solid var(--border);background:var(--surface);color:var(--ink);white-space:nowrap}
+.btn:hover{border-color:var(--border-strong)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.btn.primary:hover{background:var(--brand-hover);border-color:var(--brand-hover)}
+.btn.sm{padding:6px 11px;font-size:12.5px;border-radius:8px}
+.btn.danger{color:var(--crit-ink);border-color:color-mix(in srgb,var(--crit) 40%,var(--border))}
+.btn:disabled{opacity:.5;cursor:default}
+
+.content{padding:26px 28px 40px;display:flex;flex-direction:column;gap:22px;max-width:1440px;width:100%}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.page-head h1{font-family:var(--f-display);font-weight:600;font-size:28px;letter-spacing:-.02em;margin:0;line-height:1.1;text-wrap:balance}
+.page-head p{margin:6px 0 0;color:var(--ink-2);font-size:14px;max-width:70ch}
+.seg{display:inline-flex;background:var(--sunken);border-radius:9px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:7px;font-size:13px;font-weight:500;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08);font-weight:600}
+
+/* ---------- Panels ---------- */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;min-width:0}
+.panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.panel-head h2{font-family:var(--f-display);font-size:16.5px;font-weight:600;letter-spacing:-.01em;margin:0}
+.panel-head .hint{font-size:12.5px;color:var(--ink-3);margin-top:3px}
+.link{border:0;background:none;color:var(--brand-text);font-weight:600;font-size:13px;padding:0}
+.link:hover{text-decoration:underline}
+.grid{display:grid;gap:18px}
+.g-main{grid-template-columns:minmax(0,1.75fr) minmax(0,1fr)}
+.g-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g-acc{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
+@media (max-width:1180px){.g-main,.g-acc{grid-template-columns:1fr}.g-3{grid-template-columns:1fr 1fr}}
+@media (max-width:760px){.g-3,.g-2{grid-template-columns:1fr}}
+
+/* ---------- KPI strip ---------- */
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.kpi{padding:16px 18px 14px;border-left:1px solid var(--border);display:flex;flex-direction:column;gap:6px;min-width:0}
+.kpi:first-child{border-left:0}
+.kpi .lab{font-size:12.5px;color:var(--ink-2);font-weight:500}
+.kpi .val{font-family:var(--f-display);font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:4px}
+.kpi .val small{font-size:15px;font-weight:500;color:var(--ink-2);letter-spacing:0}
+.kpi .row{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.kpi .meta{font-size:12px;color:var(--ink-3)}
+.kpi.alert{background:linear-gradient(180deg,var(--crit-bg),transparent 85%)}
+.kpi.alert .val{color:var(--crit-ink)}
+.delta{font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+@media (max-width:1180px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.kpi:nth-child(4){border-left:0}.kpi:nth-child(n+4){border-top:1px solid var(--border)}}
+@media (max-width:640px){.kpis{grid-template-columns:1fr 1fr}.kpi{border-left:0;border-top:1px solid var(--border)}.kpi:nth-child(-n+2){border-top:0}.kpi:nth-child(even){border-left:1px solid var(--border)}.kpi:last-child{grid-column:1/-1;border-left:0}}
+
+/* ---------- Charts ---------- */
+.chart{position:relative;width:100%}
+.chart svg text{font-family:var(--f-body);font-size:11px;fill:var(--ink-3)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:10px;height:10px;border-radius:3px;flex:none;display:inline-block}
+.tip{position:fixed;z-index:60;pointer-events:none;background:var(--surface);border:1px solid var(--border-strong);box-shadow:var(--shadow);border-radius:10px;padding:10px 12px;font-size:12.5px;min-width:180px;opacity:0;transition:opacity .08s}
+.tip.on{opacity:1}
+.tip .t{font-weight:600;margin-bottom:6px;color:var(--ink)}
+.tip .r{display:flex;align-items:center;gap:8px;color:var(--ink-2);padding:1px 0}
+.tip .r b{margin-left:auto;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.tip .tot{border-top:1px solid var(--border);margin-top:6px;padding-top:6px}
+
+.hbars{display:flex;flex-direction:column;gap:9px}
+.hbar{display:grid;grid-template-columns:minmax(90px,130px) minmax(0,1fr) 44px;gap:10px;align-items:center;font-size:13px}
+.hbar .l{color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbar .track{height:10px;background:var(--sunken);border-radius:0 4px 4px 0;position:relative}
+.hbar .fill{position:absolute;inset:0 auto 0 0;background:var(--s1);border-radius:0 4px 4px 0}
+.hbar .v{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+
+.stack{display:flex;gap:2px;height:14px;border-radius:4px;overflow:hidden;margin:4px 0 14px}
+.stack div{height:100%}
+.mix{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px}
+.mix .it{display:flex;align-items:baseline;gap:8px;font-size:13px;color:var(--ink-2)}
+.mix .it b{margin-left:auto;color:var(--ink);font-variant-numeric:tabular-nums}
+.mix .it .sw{transform:translateY(1px)}
+
+.pipe{display:flex;flex-direction:column;gap:10px}
+.pipe .st{display:grid;grid-template-columns:110px minmax(0,1fr) 40px;gap:10px;align-items:center;font-size:13px}
+.pipe .st .track{height:22px;background:var(--sunken);border-radius:0 5px 5px 0;position:relative;overflow:hidden}
+.pipe .st .fill{position:absolute;inset:0 auto 0 0;background:var(--brand);opacity:.85;border-radius:0 5px 5px 0}
+.pipe .st .v{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+
+/* ---------- Pills ---------- */
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap;line-height:1.35}
+.pill.new{background:var(--brand-soft);color:var(--brand-text)}
+.pill.triaged{background:var(--sunken);color:var(--ink-2)}
+.pill.referred{background:color-mix(in srgb,var(--s1) 14%,var(--surface));color:color-mix(in srgb,var(--s1) 75%,var(--ink))}
+.pill.in_progress{background:color-mix(in srgb,var(--s4) 16%,var(--surface));color:var(--warn-ink)}
+.pill.resolved{background:var(--good-bg);color:var(--good-ink)}
+.pill.crit{background:var(--crit-bg);color:var(--crit-ink)}
+.pill.warn{background:var(--warn-bg);color:var(--warn-ink)}
+.pill.good{background:var(--good-bg);color:var(--good-ink)}
+.pill.serious{background:var(--serious-bg);color:var(--serious-ink)}
+.pill.muted{background:var(--sunken);color:var(--ink-3)}
+.pill svg{flex:none}
+
+/* ---------- Attention queue ---------- */
+.queue{display:flex;flex-direction:column;gap:8px}
+.q{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 12px 11px 0;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);text-align:left;width:100%}
+.q:hover{border-color:var(--border-strong)}
+.q .stripe{align-self:stretch;border-radius:0 3px 3px 0;background:var(--warn)}
+.q.crit .stripe{background:var(--crit)}
+.q .ref{font-family:var(--f-mono);font-size:12.5px;font-weight:600}
+.q .what{font-size:13px;color:var(--ink);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.q .when{font-size:12px;color:var(--ink-3);margin-top:2px}
+.q .sla{text-align:right;font-size:12px}
+.q .sla b{display:block;font-variant-numeric:tabular-nums;font-size:13px}
+.q.crit .sla b{color:var(--crit-ink)}
+.q .sla span{color:var(--ink-3)}
+.empty{padding:26px;text-align:center;color:var(--ink-3);border:1px dashed var(--border);border-radius:10px;font-size:13px}
+
+/* ---------- Tables ---------- */
+.table-wrap{overflow-x:auto;margin:0 -20px;padding:0 20px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:600;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);padding:9px 10px;border-bottom:1px solid var(--border);white-space:normal;vertical-align:bottom;line-height:1.3;min-width:64px}
+th:first-child{min-width:0}
+td{padding:11px 10px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:var(--surface-2)}
+tbody tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+.op-name{font-weight:600}
+.op-sub{font-size:12px;color:var(--ink-3)}
+tr.sel td{background:var(--brand-soft)!important}
+
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.filters select,.filters input[type=search]{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:7px 10px;font-size:13px}
+.filters input[type=search]{min-width:220px;flex:1;max-width:320px}
+.chk{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-2);padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
+.result-count{margin-left:auto;font-size:12.5px;color:var(--ink-3)}
+
+/* ---------- Heatmap ---------- */
+.hm{border-collapse:separate;border-spacing:3px;width:100%}
+.hm th{text-transform:none;letter-spacing:0;font-size:12px;color:var(--ink-2);font-weight:500;border:0;padding:4px 6px;white-space:normal}
+.hm th.rowh{text-align:left;white-space:nowrap}
+.hm td{border:0;text-align:center;border-radius:6px;padding:12px 6px;font-weight:600;font-variant-numeric:tabular-nums;cursor:default;color:var(--ink)}
+.hm td.hi{color:var(--hm-hi)}
+.hm td.sup{background:repeating-linear-gradient(135deg,var(--sunken) 0 5px,var(--surface-2) 5px 10px);color:var(--ink-3);font-weight:500}
+.hm tbody tr:hover td{background-color:inherit}
+.scale{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-3);margin-top:12px;flex-wrap:wrap}
+.scale .ramp{display:flex;gap:2px}
+.scale .ramp i{width:22px;height:10px;border-radius:2px;display:block}
+
+.range{display:grid;grid-template-columns:minmax(120px,170px) minmax(0,1fr) 64px;gap:12px;align-items:center;font-size:13px;padding:6px 0}
+.range .l{color:var(--ink-2)}
+.range .axis{position:relative;height:20px}
+.range .axis .base{position:absolute;left:0;right:0;top:50%;height:1px;background:var(--grid)}
+.range .axis .iqr{position:absolute;top:50%;height:6px;transform:translateY(-50%);border-radius:3px}
+.range .axis .med{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 2px var(--surface)}
+.range .v{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.range-ticks{display:grid;grid-template-columns:minmax(120px,170px) minmax(0,1fr) 64px;gap:12px;font-size:11px;color:var(--ink-3)}
+.range-ticks .tk{position:relative;height:14px}
+.range-ticks .tk span{position:absolute;transform:translateX(-50%)}
+
+/* ---------- Accountability ---------- */
+.ladder{display:flex;flex-direction:column;gap:0;margin:4px 0 6px;counter-reset:step}
+.ladder .step{display:grid;grid-template-columns:26px minmax(0,1fr);gap:10px;padding:0 0 14px;position:relative}
+.ladder .step:before{content:"";position:absolute;left:12px;top:24px;bottom:2px;width:2px;background:var(--grid)}
+.ladder .step:last-child:before{display:none}
+.ladder .b{width:26px;height:26px;border-radius:50%;background:var(--sunken);color:var(--ink-2);display:grid;place-items:center;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+.ladder .step.done .b{background:var(--brand);color:var(--brand-ink)}
+.ladder .step h4{margin:3px 0 2px;font-size:13.5px;font-weight:600}
+.ladder .step p{margin:0;font-size:12.5px;color:var(--ink-2);line-height:1.5}
+.actions{display:flex;flex-direction:column;gap:8px}
+.action{border:1px solid var(--border);border-radius:10px;padding:11px 12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center;background:var(--surface-2)}
+.action .ref{font-family:var(--f-mono);font-size:12.5px;font-weight:600}
+.action .d{font-size:12.5px;color:var(--ink-2)}
+.op-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:4px 0 18px}
+.op-summary div{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+.op-summary b{display:block;font-family:var(--f-display);font-size:21px;font-weight:600;font-variant-numeric:tabular-nums}
+.op-summary span{font-size:11.5px;color:var(--ink-3)}
+@media (max-width:640px){.op-summary{grid-template-columns:1fr 1fr}}
+.subh{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);margin:6px 0 10px}
+
+/* ---------- Partners / channel ---------- */
+.cap{display:flex;align-items:center;gap:8px;min-width:140px}
+.cap .track{flex:1;height:6px;background:var(--sunken);border-radius:3px;overflow:hidden}
+.cap .fill{height:100%;border-radius:3px}
+.funnel{display:flex;flex-direction:column;gap:8px}
+.funnel .fs{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr) 92px;gap:12px;align-items:center;font-size:13px}
+.funnel .fs .track{height:26px;background:var(--sunken);border-radius:0 5px 5px 0;position:relative;overflow:hidden}
+.funnel .fs .fill{position:absolute;inset:0 auto 0 0;background:var(--s1);border-radius:0 5px 5px 0}
+.funnel .fs .v{text-align:right;font-variant-numeric:tabular-nums}
+.funnel .fs .v b{display:block;font-weight:600}
+.funnel .fs .v span{font-size:11.5px;color:var(--ink-3)}
+.ussd-card{background:var(--side-bg);color:var(--side-ink);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.ussd-card .code{font-family:var(--f-mono);font-size:30px;font-weight:600;color:#fff;letter-spacing:.02em}
+.ussd-card p{margin:0;font-size:13px;line-height:1.55;color:var(--side-ink-2)}
+.ussd-card a{color:var(--leaf);font-weight:600;font-size:13px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px}
+.kv dt{color:var(--side-ink-2)}
+.kv dd{margin:0;color:#fff;text-align:right;font-variant-numeric:tabular-nums}
+
+/* ---------- Drawer & modal ---------- */
+.scrim{position:fixed;inset:0;background:var(--overlay);z-index:40}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(540px,100%);background:var(--surface);z-index:41;border-left:1px solid var(--border);display:flex;flex-direction:column;box-shadow:-10px 0 40px rgba(0,0,0,.15)}
+.drawer-head{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;padding-top:calc(18px + env(safe-area-inset-top,0px))}
+.drawer-head .ref{font-family:var(--f-mono);font-size:17px;font-weight:600}
+.drawer-head .sub{font-size:12.5px;color:var(--ink-3);margin-top:3px}
+.drawer-head .pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.drawer-body{padding:18px 22px 28px;overflow-y:auto;display:flex;flex-direction:column;gap:20px;padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px}
+.facts dt{font-size:11.5px;color:var(--ink-3);font-weight:500;margin-bottom:2px}
+.facts dd{margin:0;font-size:13.5px}
+.timeline{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.timeline li{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:10px;padding-bottom:13px;position:relative;font-size:13px}
+.timeline li:before{content:"";position:absolute;left:6px;top:14px;bottom:0;width:2px;background:var(--grid)}
+.timeline li:last-child:before{display:none}
+.timeline .dotc{width:14px;height:14px;border-radius:50%;border:2px solid var(--brand);background:var(--surface);margin-top:2px}
+.timeline li.pending .dotc{border-color:var(--border-strong);border-style:dashed}
+.timeline li.alert .dotc{border-color:var(--crit);background:var(--crit-bg)}
+.timeline .tt{color:var(--ink)}
+.timeline .ts{color:var(--ink-3);font-size:12px;white-space:nowrap}
+.timeline .td{color:var(--ink-2);font-size:12.5px;margin-top:1px}
+.status-set{display:flex;flex-wrap:wrap;gap:6px}
+.status-set button{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:6px 11px;font-size:12.5px;font-weight:600;color:var(--ink-2)}
+.status-set button[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:12.5px;font-weight:600;color:var(--ink-2)}
+.field select,.field textarea,.field input[type=text]{border:1px solid var(--border);background:var(--surface-2);border-radius:8px;padding:9px 10px;font-size:13.5px;width:100%}
+.field textarea{min-height:74px;resize:vertical}
+.notes{display:flex;flex-direction:column;gap:8px}
+.note{background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:9px 11px;font-size:13px}
+.note .m{font-size:11.5px;color:var(--ink-3);margin-bottom:3px}
+.privacy{display:flex;gap:10px;background:var(--brand-soft);color:var(--brand-text);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.5}
+.privacy svg{flex:none;margin-top:1px}
+.modal{position:fixed;z-index:41;top:50%;left:50%;transform:translate(-50%,-50%);width:min(560px,calc(100% - 32px));max-height:calc(100dvh - 48px);overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:22px}
+.modal h3{font-family:var(--f-display);font-size:19px;font-weight:600;margin:0 0 4px}
+.modal .lede{color:var(--ink-2);font-size:13px;margin:0 0 16px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid .full{grid-column:1/-1}
+@media (max-width:560px){.form-grid{grid-template-columns:1fr}}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:13px;font-weight:500;z-index:70;box-shadow:var(--shadow)}
+.x-btn{margin-left:auto;border:0;background:transparent;color:var(--ink-3);width:32px;height:32px;border-radius:8px;display:grid;place-items:center;flex:none}
+.x-btn:hover{background:var(--sunken);color:var(--ink)}
+.foot-note{font-size:12px;color:var(--ink-3);padding-top:4px}
+.sync{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--ink-3);display:block}
+.sync.live i{background:var(--good)}
+.sync.err i{background:var(--crit)}
+@media (max-width:700px){.sync span{display:none}}
+
+/* ---------- Responsive shell ---------- */
+@media (max-width:900px){
+  .shell{grid-template-columns:1fr}
+  .side{position:static;height:auto;flex-direction:row;align-items:center;padding:12px 16px;gap:14px;overflow-x:auto}
+  .brandmark .sub,.nav-label,.side-foot{display:none}
+  .nav{flex-direction:row;gap:4px}
+  .nav button{padding:8px 10px;font-size:13px}
+  .topbar{padding:10px 16px}
+  .content{padding:20px 16px 32px}
+  .btn .long{display:none}
+  .table-wrap{margin:0 -20px;padding:0 20px}
+}
+@media (max-width:520px){
+  .panel{padding:16px}
+  .table-wrap{margin:0 -16px;padding:0 16px}
+  .page-head h1{font-size:24px}
+  .hbar{grid-template-columns:90px minmax(0,1fr) 38px}
+  .funnel .fs{grid-template-columns:110px minmax(0,1fr) 70px}
+  .range,.range-ticks{grid-template-columns:100px minmax(0,1fr) 50px}
+  .facts{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="shell">
+  <aside class="side" aria-label="Primary">
+    <div class="brandmark">
+      <svg width="30" height="30" viewBox="0 0 28 28" aria-hidden="true">
+        <path d="M13.2 23C7.4 22.2 4.2 17 5 10.6c5.4 1 8.6 5.4 8.2 12.4z" fill="#4FA57F"/>
+        <path d="M14.8 23c5.8-.8 9-6 8.2-12.4-5.4 1-8.6 5.4-8.2 12.4z" fill="#4FA57F"/>
+        <path d="M14 18.2c-2.6-2.8-2.8-8.6 0-13.2 2.8 4.6 2.6 10.4 0 13.2z" fill="#9BE0BD"/>
+      </svg>
+      <div><span class="wm">Justicore</span><span class="sub">Worker protection and accountability</span></div>
+    </div>
+    <nav class="nav" id="nav">
+      <div class="nav-label">Operations</div>
+      <button data-view="overview" aria-current="page"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg>Overview</button>
+      <button data-view="cases"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2.2h7.5A2.5 2.5 0 0 1 21 9.7v7.8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/></svg>Cases<span class="count" id="nav-urgent">0</span></button>
+      <button data-view="accountability"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 21h10M4 7h16M6.5 7 3.5 13a3 3 0 0 0 6 0zM17.5 7l-3 6a3 3 0 0 0 6 0z"/></svg>Accountability</button>
+      <button data-view="partners"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="6" r="2.6"/><circle cx="18" cy="18" r="2.6"/><path d="m8.3 10.8 7.4-3.6M8.3 13.2l7.4 3.6"/></svg>Referral network</button>
+      <div class="nav-label" style="margin-top:14px">Evidence</div>
+      <button data-view="insights"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 17v-6M11 17V5M16 17v-9M21 17v-3"/></svg>Sector insights</button>
+      <button data-view="channel"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="2.5" width="11" height="19" rx="2.4"/><path d="M10.5 18h3"/></svg>Worker channel</button>
+    </nav>
+    <div class="side-foot">
+      <div class="hub"><strong>Kericho regional hub</strong>Covers Kericho, Bomet, Nandi, Nyamira and Kisii counties</div>
+      <div class="me"><div class="avatar" id="me-initials">MO</div><div><div class="n" id="me-name">M. Otieno</div><div class="r">Case officer</div></div></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="global-search" type="search" placeholder="Search case reference, operator or county" aria-label="Search cases">
+      </div>
+      <div class="top-actions">
+        <span class="sync" id="sync"><i></i><span>Sample data</span></span>
+        <button class="icon-btn" id="bell" aria-label="Urgent cases awaiting contact"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 1 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9zM10 20a2 2 0 0 0 4 0"/></svg><span class="dot" id="bell-dot"></span></button>
+        <button class="btn primary" id="log-call"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span>Log<span class="long"> hotline call</span></span></button>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- ================= OVERVIEW ================= -->
+      <section id="view-overview" data-v>
+        <div class="grid" style="gap:22px">
+          <div class="page-head">
+            <div>
+              <h1>Overview</h1>
+              <p id="ov-sub">Monday 21 September 2026 · all operators in the Kericho regional hub</p>
+            </div>
+            <div class="seg" role="group" aria-label="Reporting window" id="range-seg">
+              <button data-range="30" aria-pressed="false">30 days</button>
+              <button data-range="90" aria-pressed="true">90 days</button>
+              <button data-range="182" aria-pressed="false">6 months</button>
+            </div>
+          </div>
+
+          <div class="kpis" id="kpis"></div>
+
+          <div class="grid g-main">
+            <div class="panel">
+              <div class="panel-head">
+                <div><h2>Reports received</h2><div class="hint" id="weekly-hint">Weekly, by nature of report</div></div>
+                <div class="legend" id="weekly-legend"></div>
+              </div>
+              <div class="chart" id="weekly-chart"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <div><h2>Needs attention</h2><div class="hint">Cases past or near their first contact target</div></div>
+                <button class="link" data-goto="cases" data-filter="attention">View all</button>
+              </div>
+              <div class="queue" id="queue"></div>
+            </div>
+          </div>
+
+          <div class="grid g-3">
+            <div class="panel">
+              <div class="panel-head"><div><h2>Case pipeline</h2><div class="hint" id="pipe-hint">Cases received in the window, by current stage</div></div></div>
+              <div class="pipe" id="pipeline"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><div><h2>How workers reach us</h2><div class="hint">Share of reports by intake channel</div></div></div>
+              <div id="channel-mix"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><div><h2>Reports by county</h2><div class="hint">Location of the estate or factory named</div></div></div>
+              <div class="hbars" id="county-bars"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <div><h2>Operator accountability</h2><div class="hint">Response of estate operators and factory managements to notices issued by Justicore</div></div>
+              <button class="link" data-goto="accountability">Open accountability register</button>
+            </div>
+            <div class="table-wrap"><table id="op-table-mini"></table></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= CASES ================= -->
+      <section id="view-cases" data-v hidden>
+        <div class="grid" style="gap:22px">
+          <div class="page-head">
+            <div><h1>Cases</h1><p>Every report received through the worker channel, the hotline and field partners. Select a case to triage it, refer it or record contact.</p></div>
+          </div>
+          <div class="panel">
+            <div class="filters">
+              <input type="search" id="f-q" placeholder="Filter by reference, operator, county" aria-label="Filter cases">
+              <select id="f-status" aria-label="Status">
+                <option value="">All statuses</option>
+                <option value="open">All open</option>
+                <option value="new">New</option><option value="triaged">Triaged</option><option value="referred">Referred</option><option value="in_progress">In progress</option><option value="resolved">Resolved</option>
+              </select>
+              <select id="f-cat" aria-label="Nature of report"><option value="">All natures of report</option></select>
+              <select id="f-op" aria-label="Operator"><option value="">All operators</option></select>
+              <label class="chk"><input type="checkbox" id="f-urgent"> Urgent only</label>
+              <span class="result-count" id="f-count"></span>
+            </div>
+            <div class="table-wrap"><table id="case-table"></table></div>
+            <div style="display:flex;justify-content:center;margin-top:14px"><button class="btn sm" id="more-cases">Show more</button></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= ACCOUNTABILITY ================= -->
+      <section id="view-accountability" data-v hidden>
+        <div class="grid" style="gap:22px">
+          <div class="page-head">
+            <div><h1>Accountability register</h1><p>When a report points to a workplace failure, Justicore issues a notice to the estate operator or factory management. A report from an anonymous worker is issued as a pattern notice that does not identify the worker. The register tracks acknowledgement, remediation and escalation.</p></div>
+          </div>
+          <div class="grid g-acc">
+            <div class="panel">
+              <div class="panel-head"><div><h2>Operators</h2><div class="hint">Select an operator to see open remediation actions</div></div></div>
+              <div class="table-wrap"><table id="op-table"></table></div>
+            </div>
+            <div class="panel" id="op-detail"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= PARTNERS ================= -->
+      <section id="view-partners" data-v hidden>
+        <div class="grid" style="gap:22px">
+          <div class="page-head">
+            <div><h1>Referral network</h1><p>Service providers that take on referred cases. Case officers refer; partners acknowledge within seven days and report back when their part of the response is complete.</p></div>
+          </div>
+          <div class="panel">
+            <div class="table-wrap"><table id="partner-table"></table></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= INSIGHTS ================= -->
+      <section id="view-insights" data-v hidden>
+        <div class="grid" style="gap:22px">
+          <div class="page-head">
+            <div><h1>Sector insights</h1><p>Anonymised figures for the last six months, prepared for buyers, certification bodies, county governments and labour authorities. Any cell describing fewer than five reports is suppressed so that no individual worker can be identified.</p></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div><h2>Where reports come from</h2><div class="hint">Reports by county and nature of report, last six months</div></div></div>
+            <div class="table-wrap"><table class="hm" id="heatmap"></table></div>
+            <div class="scale" id="hm-scale"></div>
+          </div>
+          <div class="grid g-2">
+            <div class="panel">
+              <div class="panel-head"><div><h2>Time to resolution</h2><div class="hint">Days from report to resolution; dot shows the median, bar the middle half of cases</div></div></div>
+              <div id="resolution"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><div><h2>Reports per 1,000 workers</h2><div class="hint">Six months, by operator; adjusts for workforce size</div></div></div>
+              <div class="hbars" id="rate-bars"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= CHANNEL ================= -->
+      <section id="view-channel" data-v hidden>
+        <div class="grid" style="gap:22px">
+          <div class="page-head">
+            <div><h1>Worker channel</h1><p>The USSD service works on any handset, needs no data bundle and leaves no message history on the phone. Figures cover the last 30 days.</p></div>
+          </div>
+          <div class="grid g-acc">
+            <div class="panel">
+              <div class="panel-head"><div><h2>Reporting journey</h2><div class="hint">USSD sessions that started a report, and how far they got</div></div></div>
+              <div class="funnel" id="funnel"></div>
+            </div>
+            <div class="ussd-card">
+              <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--side-ink-2)">Shared USSD code</div>
+              <div class="code">*384*2025#</div>
+              <p>Menus are offered in Kiswahili, English, Kipsigis and Ekegusii. Sessions time out after 180 seconds without input and can be resumed with the case reference.</p>
+              <dl class="kv" id="ussd-kv"></dl>
+              <a href="https://claude.ai/artifact/59T1VidBTj1L7bW1qYySTT" target="_blank" rel="noopener">Open the channel simulator</a>
+            </div>
+          </div>
+          <div class="grid g-2">
+            <div class="panel">
+              <div class="panel-head"><div><h2>Session language</h2><div class="hint">Language chosen at the first menu</div></div></div>
+              <div id="lang-mix"></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><div><h2>Know your rights</h2><div class="hint">Information screens opened without making a report</div></div></div>
+              <div class="hbars" id="rights-bars"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="foot-note" id="foot-note">Sample data for demonstration. Operators, officers and case records shown here are fictional.</div>
+    </main>
+  </div>
+</div>
+
+<div class="tip" id="tip" role="tooltip"></div>
+<div id="layer"></div>
+
+<script>
+/* =========================================================
+   CONFIGURATION: the only block you need to edit
+   ========================================================= */
+const CONFIG = {
+  API_URL: '',               // Apps Script web app URL ending in /exec. Leave empty for sample data.
+  OFFICER: 'Case officer',   // name recorded against notes and updates made from this browser
+  REFRESH_SECONDS: 60,       // how often live data is reloaded
+};
+const LIVE = !!CONFIG.API_URL;
+const ME = LIVE ? CONFIG.OFFICER : 'M. Otieno';
+
+/* =========================================================
+   Sample data (seeded, so every load shows the same records)
+   ========================================================= */
+const DAY = 864e5, HR = 36e5;
+let NOW = LIVE ? Date.now() : new Date(2026, 8, 21, 10, 30).getTime();
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const R = mulberry(20260921);
+function wpick(arr){const tot=arr.reduce((s,a)=>s+(a.w||1),0);let r=R()*tot;for(const a of arr){r-=(a.w||1);if(r<=0)return a}return arr[arr.length-1]}
+const expo = m => -Math.log(1 - R()) * m;
+
+const CATS = [
+  {id:'harassment', label:'Sexual harassment or violence', short:'Harassment or violence', w:.34, col:'--s1'},
+  {id:'conditions', label:'Unsafe working conditions', short:'Working conditions', w:.30, col:'--s2'},
+  {id:'wages', label:'Wages or contract', short:'Wages or contract', w:.26, col:'--s3'},
+  {id:'other', label:'Other workplace concern', short:'Other concern', w:.10, col:'--s4'},
+];
+const CHANNELS = [
+  {id:'ussd', label:'USSD', w:.62, col:'--s1'},
+  {id:'app', label:'Mobile app', w:.17, col:'--s2'},
+  {id:'hotline', label:'Toll-free hotline', w:.13, col:'--s3'},
+  {id:'field', label:'Field partner', w:.08, col:'--s4'},
+];
+const RTYPES = [
+  {id:'anonymous', label:'Anonymous', w:.46},
+  {id:'confidential', label:'Confidential', w:.44},
+  {id:'third_party', label:'On behalf of another worker', w:.10},
+];
+let OPS = [
+  {id:'kap', name:'Kaptarit Hills Estates Ltd', type:'Multinational estate', county:'Kericho', workforce:6200, resp:.9, w:.2},
+  {id:'sir', name:'Sirwet Valley Tea Company', type:'Multinational estate', county:'Kericho', workforce:4800, resp:.6, w:.17},
+  {id:'les', name:'Lessos Crest Plantations', type:'Multinational estate', county:'Nandi', workforce:3100, resp:.28, w:.15},
+  {id:'tug', name:'Tugenon Ridge Estates', type:'Multinational estate', county:'Bomet', workforce:2700, resp:.75, w:.12},
+  {id:'ker12', name:'Smallholder Factory KER-12', type:'Smallholder factory', county:'Kericho', workforce:1400, resp:.5, w:.1},
+  {id:'bmt05', name:'Smallholder Factory BMT-05', type:'Smallholder factory', county:'Bomet', workforce:1150, resp:.33, w:.1},
+  {id:'nym07', name:'Smallholder Factory NYM-07', type:'Smallholder factory', county:'Nyamira', workforce:980, resp:.82, w:.08},
+  {id:'ksi03', name:'Smallholder Factory KSI-03', type:'Smallholder factory', county:'Kisii', workforce:1050, resp:.58, w:.08},
+];
+let OP = Object.fromEntries(OPS.map(o=>[o.id,o]));
+let COUNTIES = ['Kericho','Bomet','Nandi','Nyamira','Kisii'];
+const OFFICERS = ['M. Otieno','A. Chebet','W. Kamau','N. Moraa'];
+const PARTNERS = [
+  {id:'gbv', label:'GBV recovery centre', kind:'Medical and forensic care', counties:['Kericho','Bomet','Kisii'], cap:14},
+  {id:'police', label:'Police gender desk', kind:'Protection and investigation', counties:COUNTIES, cap:12},
+  {id:'psy', label:'Psychosocial support network', kind:'Counselling', counties:COUNTIES, cap:18},
+  {id:'shelter', label:'Safe accommodation partner', kind:'Shelter', counties:['Kericho'], cap:5},
+  {id:'legal', label:'Legal aid clinic', kind:'Legal advice and representation', counties:COUNTIES, cap:22},
+  {id:'labour', label:'County labour office', kind:'Inspection and conciliation', counties:COUNTIES, cap:18},
+  {id:'union', label:"Workers' union branch", kind:'Collective representation', counties:['Kericho','Bomet','Nandi'], cap:16},
+  {id:'employer', label:'Operator grievance desk', kind:'Workplace intervention', counties:COUNTIES, cap:30},
+];
+const PARTNER = Object.fromEntries(PARTNERS.map(p=>[p.id,p]));
+const CAT_PARTNERS = {
+  harassment:[{id:'gbv',w:.28},{id:'legal',w:.26},{id:'psy',w:.24},{id:'police',w:.16},{id:'shelter',w:.06}],
+  conditions:[{id:'labour',w:.45},{id:'employer',w:.35},{id:'union',w:.2}],
+  wages:[{id:'labour',w:.4},{id:'legal',w:.3},{id:'union',w:.3}],
+  other:[{id:'legal',w:.5},{id:'employer',w:.5}],
+};
+const STATUSES = [
+  {id:'new', label:'New'}, {id:'triaged', label:'Triaged'}, {id:'referred', label:'Referred'},
+  {id:'in_progress', label:'In progress'}, {id:'resolved', label:'Resolved'},
+];
+const STATUS = Object.fromEntries(STATUSES.map(s=>[s.id,s.label]));
+const CAT = Object.fromEntries(CATS.map(c=>[c.id,c]));
+const CH = Object.fromEntries(CHANNELS.map(c=>[c.id,c]));
+const RT = Object.fromEntries(RTYPES.map(c=>[c.id,c]));
+
+let seq = 1041;
+const cases = [];
+function makeCase(received, forced){
+  const cat = forced?.cat ? CAT[forced.cat] : wpick(CATS);
+  const op = forced?.op ? OP[forced.op] : wpick(OPS);
+  const c = {
+    ref:'', received, cat:cat.id, op:op.id, county:op.county,
+    channel: forced?.channel || wpick(CHANNELS).id, rtype: wpick(RTYPES).id,
+    urgent: forced ? !!forced.urgent : R() < (cat.id==='harassment' ? .17 : .035),
+    officer: OFFICERS[Math.floor(R()*OFFICERS.length)],
+    contactH:null, status:'new', partner:null, partnerAck:null, notice:null, resolvedAt:null, notes:[]
+  };
+  if (forced) return c;
+  const ageH = (NOW - received)/HR, ageD = ageH/24;
+  const contact = c.urgent ? .25 + R()*R()*3.2 : 1.5 + expo(13);
+  if (ageH < contact) return c;
+  c.contactH = contact;
+  const pRes = Math.min(.86, ageD/60);
+  const partner = wpick(CAT_PARTNERS[c.cat]).id;
+  if (ageD < 1.5) { c.status = R() < .6 ? 'triaged' : 'referred'; }
+  else if (R() < pRes) { c.status = 'resolved'; c.resolvedAt = received + Math.max(contact/24 + 1, ageD*(.35 + R()*.55))*DAY; }
+  else { const r = R(); c.status = r < .18 ? 'triaged' : r < .55 ? 'referred' : 'in_progress'; }
+  if (c.status !== 'triaged' && c.status !== 'new') {
+    c.partner = partner;
+    c.referredAt = received + (contact + 4 + R()*30)*HR;
+    const ack = .4 + expo(3.9);
+    if (c.referredAt + ack*DAY < NOW) c.partnerAck = ack;
+  }
+  const wantsNotice = c.partner && (c.partner==='employer' || c.cat==='conditions' || c.cat==='wages' || (c.cat==='harassment' && R()<.45));
+  if (wantsNotice && ageD > 4) {
+    const issued = received + (2 + R()*5)*DAY;
+    if (issued < NOW) {
+      const acked = R() < op.resp;
+      const ackDays = acked ? 2 + expo(5.5) : null;
+      const n = { issued, due: issued + 30*DAY, ackDays: ackDays!=null && issued + ackDays*DAY < NOW ? ackDays : null, closedAt:null, escalated:false };
+      if (n.ackDays!=null && R() < .35 + op.resp*.55) { const cl = issued + (n.ackDays + 6 + R()*28)*DAY; if (cl < NOW) n.closedAt = cl; }
+      if (c.status==='resolved' && !n.closedAt) n.closedAt = c.resolvedAt;
+      c.notice = n;
+    }
+  }
+  return c;
+}
+if (!LIVE) for (let d = 181; d >= 0; d--) {
+  const lam = 1.25 + 1.45*(1 - d/181);
+  let n = Math.floor(lam) + (R() < lam%1 ? 1 : 0) + (R() < .22 ? 1 : 0) - (R() < .2 ? 1 : 0);
+  for (let j = 0; j < n; j++) {
+    const received = d === 0 ? NOW - R()*9*HR : NOW - d*DAY - R()*14*HR;
+    cases.push(makeCase(received));
+  }
+}
+// Current live situations on the desk this morning
+if (!LIVE) [
+  {h:.45, cat:'harassment', op:'les', urgent:true, channel:'ussd'},
+  {h:1.6, cat:'harassment', op:'sir', urgent:true, channel:'ussd'},
+  {h:3.3, cat:'conditions', op:'bmt05', urgent:true, channel:'hotline'},
+  {h:52, cat:'wages', op:'ker12', urgent:false, channel:'ussd'},
+  {h:61, cat:'conditions', op:'tug', urgent:false, channel:'app'},
+].forEach(f => cases.push(makeCase(NOW - f.h*HR, f)));
+cases.sort((a,b) => a.received - b.received).forEach(c => c.ref = 'JC-26-' + String(seq++).padStart(4,'0'));
+cases.reverse();
+const BY_REF = Object.fromEntries(cases.map(c=>[c.ref,c]));
+
+/* =========================================================
+   Helpers
+   ========================================================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const sum = a => a.reduce((s,v)=>s+v,0);
+function quant(arr, q){ if(!arr.length) return null; const s=[...arr].sort((a,b)=>a-b); const p=(s.length-1)*q, lo=Math.floor(p), hi=Math.ceil(p); return s[lo]+(s[hi]-s[lo])*(p-lo); }
+const median = a => quant(a,.5);
+const fmtDate = ts => new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+const fmtShort = ts => new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+const fmtDT = ts => new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) + ', ' + new Date(ts).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+function fmtDur(h){ if(h==null) return 'n/a'; if(h<1) return Math.round(h*60)+' min'; if(h<48) return (Math.round(h*10)/10)+' h'; return Math.round(h/24)+' days'; }
+function ago(ts){ const m=(NOW-ts)/6e4; if(m<60) return Math.max(1,Math.round(m))+' min ago'; const h=m/60; if(h<24){const hh=Math.floor(h), mm=Math.round((h-hh)*60); return hh+' h'+(mm?' '+mm+' min':'')+' ago';} const d=Math.round(h/24); return d===1?'yesterday':d+' days ago'; }
+const isOpen = c => c.status !== 'resolved';
+const opName = c => (c.op === '__other' && c.opText) ? c.opText + ' (not on list)' : OP[c.op].name;
+const targetH = c => c.urgent ? 2 : 48;
+const awaiting = c => c.status === 'new' && c.contactH == null;
+const isOverdue = c => c.notice && !c.notice.closedAt && NOW > c.notice.due && c.status !== 'resolved';
+const icon = {
+  alert:'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 7v6M12 17h.01"/><circle cx="12" cy="12" r="10" stroke-width="2.4"/></svg>',
+  check:'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>',
+  clock:'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  dash:'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 12h12"/></svg>',
+};
+const statusPill = s => `<span class="pill ${s}">${STATUS[s]}</span>`;
+const urgentPill = () => `<span class="pill crit">${icon.alert}Urgent</span>`;
+function niceMax(v){ if(v<=0) return 4; const p=Math.pow(10,Math.floor(Math.log10(v))); const n=v/p; const m = n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10; return m*p; }
+const tip = $('#tip');
+function showTip(html, e){ tip.innerHTML = html; tip.classList.add('on'); const w = tip.offsetWidth, h = tip.offsetHeight; let x = e.clientX + 14, y = e.clientY + 14; if (x + w > innerWidth - 8) x = e.clientX - w - 14; if (y + h > innerHeight - 8) y = e.clientY - h - 14; tip.style.left = x+'px'; tip.style.top = y+'px'; }
+function hideTip(){ tip.classList.remove('on'); }
+function toast(msg){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2200); }
+
+/* =========================================================
+   State
+   ========================================================= */
+let range = 90;
+let view = 'overview';
+let selectedOp = 'les';
+let caseLimit = 40;
+const inWindow = (c, days=range) => NOW - c.received <= days*DAY;
+
+/* =========================================================
+   Operator statistics
+   ========================================================= */
+function opStats(op, days=range){
+  const oc = cases.filter(c=>c.op===op.id);
+  const win = oc.filter(c=>inWindow(c,days));
+  const notices = oc.filter(c=>c.notice);
+  const eligible = notices.filter(c=>NOW - c.notice.issued >= 14*DAY);
+  const ack14 = eligible.filter(c=>c.notice.ackDays!=null && c.notice.ackDays<=14).length;
+  const ackRate = eligible.length ? ack14/eligible.length : null;
+  const overdue = oc.filter(isOverdue).length;
+  const open = oc.filter(isOpen).length;
+  const escalated = oc.filter(c=>c.notice && c.notice.escalated).length;
+  let standing;
+  if (ackRate==null || eligible.length < 3) standing = {cls:'muted', label:'Insufficient history', ic:icon.dash};
+  else if (ackRate >= .7 && overdue <= 2) standing = {cls:'good', label:'Responsive', ic:icon.check};
+  else if (ackRate < .45 || overdue >= 6) standing = {cls:'crit', label:'Non-responsive', ic:icon.alert};
+  else standing = {cls:'warn', label:'Delayed', ic:icon.clock};
+  return {op, oc, win, notices, eligible, ackRate, overdue, open, escalated, standing, per1k: win.length/op.workforce*1000,
+    noticesWin: notices.filter(c=>NOW - c.notice.issued <= days*DAY).length};
+}
+
+/* =========================================================
+   Overview
+   ========================================================= */
+function spark(values, color){
+  const W=112, H=34, p=3; const vs = values.filter(v=>v!=null); if(vs.length<2) return '';
+  const min=Math.min(...vs), max=Math.max(...vs), span=(max-min)||1;
+  const pts = values.map((v,i)=>v==null?null:[p+i*(W-2*p)/(values.length-1), H-p-(v-min)/span*(H-2*p-4)]).filter(Boolean);
+  const line = pts.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' ');
+  const area = line + ` L${pts[pts.length-1][0].toFixed(1)} ${H} L${pts[0][0].toFixed(1)} ${H} Z`;
+  const e = pts[pts.length-1];
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true" style="flex:none;overflow:visible"><path d="${area}" style="fill:var(${color});opacity:.12"/><path d="${line}" style="fill:none;stroke:var(${color});stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round"/><circle cx="${e[0]}" cy="${e[1]}" r="3" style="fill:var(${color});stroke:var(--surface);stroke-width:1.5"/></svg>`;
+}
+function weekly(fn, weeks=13){
+  const out=[]; for(let k=weeks-1;k>=0;k--){ const hi=NOW-k*7*DAY, lo=hi-7*DAY; out.push(fn(lo,hi)); } return out;
+}
+function renderKPIs(){
+  const open = cases.filter(isOpen).length;
+  const openAt = t => cases.filter(c=>c.received<=t && (c.status!=='resolved' || c.resolvedAt>t)).length;
+  const open30 = openAt(NOW-30*DAY);
+  const openSeries = weekly((lo,hi)=>openAt(hi));
+  const waiting = cases.filter(c=>c.urgent && awaiting(c)).length;
+  const urgentSeries = weekly((lo,hi)=>cases.filter(c=>c.urgent && c.received>lo && c.received<=hi).length);
+  const cH = (lo,hi) => median(cases.filter(c=>c.received>lo && c.received<=hi && c.contactH!=null).map(c=>c.contactH));
+  const med30 = cH(NOW-30*DAY, NOW), medPrev = cH(NOW-60*DAY, NOW-30*DAY);
+  const medSeries = weekly(cH);
+  const ackRate = (lo,hi) => { const r=cases.filter(c=>c.referredAt && c.referredAt>lo && c.referredAt<=hi && NOW-c.referredAt>7*DAY); return r.length ? r.filter(c=>c.partnerAck!=null && c.partnerAck<=7).length/r.length : null; };
+  const ack = ackRate(NOW-90*DAY, NOW), ackPrev = ackRate(NOW-180*DAY, NOW-90*DAY);
+  const ackSeries = weekly((lo,hi)=>ackRate(lo-21*DAY,hi));
+  const overdue = cases.filter(isOverdue);
+  const opsOver = new Set(overdue.map(c=>c.op)).size;
+  const d = (a,b,unit='',dec=0) => { if(a==null||b==null) return 'n/a'; const x=a-b; const s = x>0?'+':x<0?'−':''; return `${s}${Math.abs(x).toFixed(dec)}${unit}`; };
+  const big = h => h==null ? 'n/a' : h<48 ? `${Math.round(h*10)/10}<small>h</small>` : `${Math.round(h/24)}<small>days</small>`;
+  $('#kpis').innerHTML = `
+    <div class="kpi"><div class="lab">Open cases</div><div class="row"><div class="val">${open}</div>${spark(openSeries,'--s1')}</div><div class="meta"><span class="delta">${d(open,open30)}</span> since ${fmtShort(NOW-30*DAY)}</div></div>
+    <div class="kpi ${waiting?'alert':''}"><div class="lab">Urgent, awaiting first contact</div><div class="row"><div class="val">${waiting}</div>${spark(urgentSeries,'--crit')}</div><div class="meta">Target: contact within 2 hours</div></div>
+    <div class="kpi"><div class="lab">Median time to first contact</div><div class="row"><div class="val">${big(med30)}</div>${spark(medSeries,'--s1')}</div><div class="meta"><span class="delta">${d(med30,medPrev,' h',1)}</span> vs previous 30 days</div></div>
+    <div class="kpi"><div class="lab">Referrals acknowledged in 7 days</div><div class="row"><div class="val">${ack==null?'n/a':Math.round(ack*100)+'<small>%</small>'}</div>${spark(ackSeries.map(v=>v==null?null:v*100),'--s1')}</div><div class="meta"><span class="delta">${d(ack==null?null:ack*100,ackPrev==null?null:ackPrev*100,' pts')}</span> vs previous 90 days</div></div>
+    <div class="kpi"><div class="lab">Overdue remediation actions</div><div class="row"><div class="val">${overdue.length}</div></div><div class="meta">Held by ${opsOver} of ${OPS.length} operators · <button class="link" data-goto="accountability" style="font-size:12px">Review</button></div></div>`;
+  $('#nav-urgent').textContent = waiting; $('#nav-urgent').hidden = !waiting; $('#bell-dot').hidden = !waiting;
+}
+
+function renderWeekly(){
+  const weeks = Math.ceil(range/7);
+  const buckets = [];
+  for (let k=weeks-1;k>=0;k--){ const hi=NOW-k*7*DAY, lo=hi-7*DAY; const vals={}; CATS.forEach(c=>vals[c.id]=0); cases.forEach(c=>{ if(c.received>lo && c.received<=hi) vals[c.cat]++; }); buckets.push({lo,hi,vals,total:sum(Object.values(vals))}); }
+  $('#weekly-hint').textContent = `Weekly, by nature of report · ${sum(buckets.map(b=>b.total))} reports in ${weeks} weeks`;
+  $('#weekly-legend').innerHTML = CATS.map(c=>`<span><i class="sw" style="background:var(${c.col})"></i>${c.short}</span>`).join('');
+  const el = $('#weekly-chart'); const W = Math.max(300, el.clientWidth || 640), H = 250, m={l:30,r:4,t:10,b:26};
+  const iw=W-m.l-m.r, ih=H-m.t-m.b; const max=niceMax(Math.max(4, ...buckets.map(b=>b.total)));
+  const band=iw/buckets.length, bw=Math.max(4,Math.min(30,band*.62));
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Weekly reports by nature of report">`;
+  const nt = (max%4===0 && max/4>=1 && Number.isInteger(max/4)) ? 4 : 5; for(let i=0;i<=nt;i++){ const v=max*i/nt, y=m.t+ih-ih*i/nt; s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y}" y2="${y}" style="stroke:var(--grid);stroke-width:1"/><text x="${m.l-8}" y="${y+3.5}" text-anchor="end">${Math.round(v)}</text>`; }
+  const step = Math.ceil(buckets.length/7);
+  buckets.forEach((b,i)=>{
+    const x=m.l+i*band+(band-bw)/2; let y0=m.t+ih; const present = CATS.filter(c=>b.vals[c.id]>0);
+    s+=`<rect class="hov" data-i="${i}" x="${m.l+i*band}" y="${m.t}" width="${band}" height="${ih}" style="fill:var(--sunken);opacity:0"/>`;
+    present.forEach((c,j)=>{ const h=b.vals[c.id]/max*ih; const top=j===present.length-1; const gap=j>0?2:0; const hh=Math.max(0,h-gap); const y=y0-h;
+      if(top){ const r=Math.min(4,hh/2,bw/2); s+=`<path d="M${x} ${y0-gap} V${y+r} Q${x} ${y} ${x+r} ${y} H${x+bw-r} Q${x+bw} ${y} ${x+bw} ${y+r} V${y0-gap} Z" style="fill:var(${c.col})"/>`; }
+      else s+=`<rect x="${x}" y="${y}" width="${bw}" height="${hh}" style="fill:var(${c.col})"/>`;
+      y0-=h; });
+    if ((buckets.length-1-i)%step===0) s+=`<text x="${x+bw/2}" y="${H-8}" text-anchor="middle">${fmtShort(b.lo+DAY)}</text>`;
+    s+=`<rect data-i="${i}" x="${m.l+i*band}" y="${m.t}" width="${band}" height="${ih+m.b}" style="fill:transparent"/>`;
+  });
+  s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${m.t+ih}" y2="${m.t+ih}" style="stroke:var(--axis);stroke-width:1"/></svg>`;
+  el.innerHTML = s;
+  const svg = el.querySelector('svg');
+  svg.onmousemove = e => { const t=e.target.closest('[data-i]'); svg.querySelectorAll('.hov').forEach(r=>r.style.opacity=0); if(!t){hideTip();return;} const i=+t.dataset.i, b=buckets[i]; svg.querySelector(`.hov[data-i="${i}"]`).style.opacity=.7;
+    showTip(`<div class="t">Week of ${fmtShort(b.lo+DAY)} to ${fmtShort(b.hi)}</div>`+CATS.slice().reverse().map(c=>`<div class="r"><i class="sw" style="background:var(${c.col})"></i>${c.short}<b>${b.vals[c.id]}</b></div>`).join('')+`<div class="r tot">Total<b>${b.total}</b></div>`, e); };
+  svg.onmouseleave = () => { hideTip(); svg.querySelectorAll('.hov').forEach(r=>r.style.opacity=0); };
+}
+
+function renderQueue(){
+  const list = cases.filter(c=>awaiting(c) && (c.urgent || (NOW-c.received)/HR > 36))
+    .sort((a,b)=> (b.urgent-a.urgent) || (((NOW-b.received)/HR/targetH(b)) - ((NOW-a.received)/HR/targetH(a)))).slice(0,6);
+  if(!list.length){ $('#queue').innerHTML = '<div class="empty">No cases are waiting past their contact target.</div>'; return; }
+  $('#queue').innerHTML = list.map(c=>{ const el=(NOW-c.received)/HR, t=targetH(c), over=el>t; const crit = c.urgent || over;
+    return `<button class="q ${crit?'crit':''}" data-case="${c.ref}"><span class="stripe"></span><span style="min-width:0"><span class="ref">${c.ref}</span> ${c.urgent?urgentPill():''}<div class="what">${c.catUnknown?'Details not yet given':CAT[c.cat].label} · ${c.op==='__other'&&!c.opText?'Workplace not yet named':opName(c)}</div><div class="when">Received ${ago(c.received)} via ${CH[c.channel].label}</div></span><span class="sla">${over?`<b>${fmtDur(el-t)} over</b><span>target ${fmtDur(t)}</span>`:`<b>${fmtDur(t-el)} left</b><span>to first contact</span>`}</span></button>`; }).join('');
+}
+
+function renderPipeline(){
+  const win = cases.filter(c=>inWindow(c));
+  const max = Math.max(1, ...STATUSES.map(s=>win.filter(c=>c.status===s.id).length));
+  $('#pipe-hint').textContent = `${win.length} cases received in the last ${range===182?'6 months':range+' days'}, by current stage`;
+  $('#pipeline').innerHTML = STATUSES.map(s=>{ const n=win.filter(c=>c.status===s.id).length; return `<div class="st"><span>${s.label}</span><span class="track"><span class="fill" style="width:${n/max*100}%"></span></span><span class="v">${n}</span></div>`; }).join('');
+}
+function mixBlock(items){
+  const tot = sum(items.map(i=>i.n)) || 1;
+  return `<div class="stack" role="img" aria-label="${items.map(i=>i.label+' '+Math.round(i.n/tot*100)+'%').join(', ')}">${items.map(i=>`<div style="width:${i.n/tot*100}%;background:var(${i.col})" data-tip="${esc(i.label)}: ${i.n} (${Math.round(i.n/tot*100)}%)"></div>`).join('')}</div>
+    <div class="mix">${items.map(i=>`<div class="it"><i class="sw" style="background:var(${i.col})"></i>${i.label}<b>${Math.round(i.n/tot*100)}%</b></div>`).join('')}</div>`;
+}
+function renderChannelMix(){
+  const win = cases.filter(c=>inWindow(c));
+  if (!win.length) { $('#channel-mix').innerHTML = '<div class="empty">No reports in this window yet.</div>'; return; }
+  $('#channel-mix').innerHTML = mixBlock(CHANNELS.map(ch=>({label:ch.label, col:ch.col, n:win.filter(c=>c.channel===ch.id).length})))
+    + `<p style="margin:16px 0 0;font-size:12.5px;color:var(--ink-3);line-height:1.5">${Math.round(win.filter(c=>c.rtype==='anonymous').length/win.length*100)}% of reports in this window were made anonymously; ${Math.round(win.filter(c=>c.rtype==='third_party').length/win.length*100)}% were made on behalf of another worker.</p>`;
+}
+function renderCountyBars(){
+  const win = cases.filter(c=>inWindow(c));
+  const rows = COUNTIES.map(k=>({k,n:win.filter(c=>c.county===k).length})).sort((a,b)=>b.n-a.n);
+  const max = Math.max(...rows.map(r=>r.n)) || 1;
+  $('#county-bars').innerHTML = rows.map(r=>`<div class="hbar"><span class="l">${r.k}</span><span class="track"><span class="fill" style="width:${r.n/max*100}%"></span></span><span class="v">${r.n}</span></div>`).join('');
+}
+function opRow(s, full){
+  const ack = s.ackRate==null ? '<span style="color:var(--ink-3)">n/a</span>' : Math.round(s.ackRate*100)+'%';
+  return `<tr data-op="${s.op.id}" class="${full && s.op.id===selectedOp?'sel':''}"><td><div class="op-name">${s.op.name}</div><div class="op-sub">${s.op.type} · ${s.op.county}</div></td>
+    <td class="r">${s.open}</td>${full?'':`<td class="r">${s.per1k.toFixed(1)}</td>`}<td class="r">${s.noticesWin}</td><td class="r">${ack}</td>
+    <td class="r" style="${s.overdue?'color:var(--crit-ink);font-weight:600':''}">${s.overdue}</td><td><span class="pill ${s.standing.cls}">${s.standing.ic}${s.standing.label}</span></td></tr>`;
+}
+function renderOpMini(){
+  const rows = OPS.map(o=>opStats(o)).sort((a,b)=>b.overdue-a.overdue || b.open-a.open);
+  $('#op-table-mini').innerHTML = `<thead><tr><th>Operator</th><th class="r">Open cases</th><th class="r">Reports per 1,000 workers</th><th class="r">Notices issued</th><th class="r">Acknowledged in 14 days</th><th class="r">Overdue actions</th><th>Standing</th></tr></thead><tbody>${rows.map(s=>opRow(s,false)).join('')}</tbody>`;
+}
+
+/* =========================================================
+   Cases
+   ========================================================= */
+function populateFilters(){
+  $('#f-cat').innerHTML = '<option value="">All natures of report</option>' + CATS.map(c=>`<option value="${c.id}">${c.label}</option>`).join('');
+  $('#f-op').innerHTML = '<option value="">All operators</option>' + OPS.map(o=>`<option value="${o.id}">${o.name}</option>`).join('') + (LIVE?'<option value="__other">Not on the operator list</option>':'');
+}
+let attentionFilter = false;
+function filteredCases(){
+  const q = $('#f-q').value.trim().toLowerCase(), st=$('#f-status').value, cat=$('#f-cat').value, op=$('#f-op').value, urg=$('#f-urgent').checked;
+  return cases.filter(c=>{
+    if (attentionFilter && !(awaiting(c) && (c.urgent || (NOW-c.received)/HR>36))) return false;
+    if (st==='open' && !isOpen(c)) return false; if (st && st!=='open' && c.status!==st) return false;
+    if (cat && c.cat!==cat) return false; if (op && c.op!==op) return false; if (urg && !c.urgent) return false;
+    if (q && !(c.ref.toLowerCase().includes(q) || opName(c).toLowerCase().includes(q) || c.county.toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+function renderCases(){
+  const list = filteredCases();
+  $('#f-count').textContent = (attentionFilter?'Needs attention · ':'') + `${list.length} case${list.length===1?'':'s'}`;
+  const shown = list.slice(0, caseLimit);
+  $('#case-table').innerHTML = `<thead><tr><th>Reference</th><th>Received</th><th>Nature of report</th><th>Operator</th><th>Channel</th><th>Basis</th><th>Status</th><th>Officer</th></tr></thead><tbody>${
+    shown.map(c=>`<tr data-case="${c.ref}"><td class="mono" style="font-weight:600;font-size:12.5px">${c.ref}</td><td><div>${fmtDT(c.received)}</div><div class="op-sub">${ago(c.received)}</div></td>
+      <td>${CAT[c.cat].label} ${c.urgent?urgentPill():''}</td><td><div>${opName(c)}</div><div class="op-sub">${c.county}</div></td><td>${CH[c.channel].label}</td><td>${RT[c.rtype].label}</td>
+      <td>${statusPill(c.status)}${awaiting(c)&&(NOW-c.received)/HR>targetH(c)?' <span class="pill crit">'+icon.clock+'Past target</span>':''}</td><td>${c.officer}</td></tr>`).join('')
+  }</tbody>`;
+  if(!list.length) $('#case-table').innerHTML += `<tbody><tr><td colspan="8"><div class="empty">No cases match these filters.</div></td></tr></tbody>`;
+  $('#more-cases').hidden = list.length <= caseLimit;
+}
+
+function timeline(c){
+  const ev = [];
+  ev.push({t:`Report received via ${CH[c.channel].label}`, ts:c.received, d:RT[c.rtype].label + ' report'});
+  if (c.contactH!=null) ev.push({t:`First contact by ${c.officer}`, ts:c.received+c.contactH*HR, d:`${fmtDur(c.contactH)} after the report; target ${fmtDur(targetH(c))}`});
+  else { const over=(NOW-c.received)/HR>targetH(c); ev.push({t:'Awaiting first contact', pending:true, alert:over, d: over?`Past the ${fmtDur(targetH(c))} target by ${fmtDur((NOW-c.received)/HR-targetH(c))}`:`Due within ${fmtDur(targetH(c)-(NOW-c.received)/HR)}`}); }
+  if (c.partner){ ev.push({t:`Referred to ${PARTNER[c.partner].label}`, ts:c.referredAt, d:PARTNER[c.partner].kind});
+    if (c.partnerAck!=null) ev.push({t:'Referral acknowledged by partner', ts:c.referredAt+c.partnerAck*DAY, d:`${Math.round(c.partnerAck*10)/10} days after referral`});
+    else if (c.status!=='resolved') ev.push({t:'Partner acknowledgement pending', pending:true, alert: NOW-c.referredAt>7*DAY});
+  }
+  if (c.notice){ ev.push({t:c.rtype==='anonymous'?'Pattern notice issued to operator':'Notice issued to operator', ts:c.notice.issued, d:`Remediation due ${fmtDate(c.notice.due)}`});
+    if (c.notice.ackDays!=null) ev.push({t:'Operator acknowledged notice', ts:c.notice.issued+c.notice.ackDays*DAY});
+    else if (!c.notice.closedAt) ev.push({t:'Operator acknowledgement outstanding', pending:true, alert:NOW-c.notice.issued>14*DAY});
+    if (c.notice.closedAt && c.notice.closedAt<=NOW) ev.push({t:'Remediation confirmed', ts:c.notice.closedAt});
+    else if (isOverdue(c)) ev.push({t:c.notice.escalated?'Escalated to buyers, certifier and labour office':'Remediation overdue', pending:!c.notice.escalated, alert:true, ts:c.notice.escalated?c.notice.escalatedAt:null, d:`${Math.round((NOW-c.notice.due)/DAY)} days past due`});
+  }
+  if (c.status==='resolved' && c.resolvedAt) ev.push({t:'Case resolved', ts:c.resolvedAt});
+  return ev.sort((a,b)=>(a.ts??Infinity)-(b.ts??Infinity));
+}
+function openCase(ref){
+  const c = BY_REF[ref]; if(!c) return;
+  const layer = $('#layer');
+  const partnerOpts = CAT_PARTNERS[c.cat].map(p=>p.id).concat(PARTNERS.map(p=>p.id)).filter((v,i,a)=>a.indexOf(v)===i);
+  layer.innerHTML = `<div class="scrim" data-close></div>
+  <aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="dr-ref">
+    <div class="drawer-head"><div style="min-width:0"><div class="ref" id="dr-ref">${c.ref}</div><div class="sub">Received ${fmtDT(c.received)} · ${ago(c.received)}</div><div class="pills">${statusPill(c.status)}${c.urgent?urgentPill():''}<span class="pill muted">${RT[c.rtype].label}</span></div></div>
+      <button class="x-btn" data-close aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <div class="drawer-body">
+      <dl class="facts">
+        <div><dt>Nature of report</dt><dd>${c.catUnknown?'Not yet stated (urgent route)':CAT[c.cat].label}</dd></div>
+        <div><dt>Estate or factory</dt><dd>${opName(c)}</dd></div>
+        <div><dt>County</dt><dd>${c.county}</dd></div>
+        <div><dt>Operator type</dt><dd>${OP[c.op].type}</dd></div>
+        <div><dt>Intake channel</dt><dd>${CH[c.channel].label}</dd></div>
+        <div><dt>Case officer</dt><dd>${c.officer}</dd></div>
+        ${c.phone?`<div><dt>Contact number</dt><dd><a href="tel:${esc(c.phone)}" style="color:var(--brand-text)">${esc(c.phone)}</a>${c.consent?' · consented to a call':''}</dd></div>`:''}
+      </dl>
+      ${c.rtype==='anonymous'?`<div class="privacy"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span>Identity withheld. The worker can follow this case with the reference alone; any notice to the operator is issued as a pattern notice.</span></div>`:c.rtype==='confidential'?`<div class="privacy"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span>Confidential. Contact details are visible to the assigned officer only and are never shared with the operator without the worker's consent.</span></div>`:''}
+      <div><div class="subh">Case history</div><ol class="timeline">${timeline(c).map(e=>`<li class="${e.pending?'pending':''} ${e.alert?'alert':''}"><span class="dotc"></span><span><div class="tt">${e.t}</div>${e.d?`<div class="td">${e.d}</div>`:''}</span><span class="ts">${e.ts?fmtDT(e.ts):''}</span></li>`).join('')}</ol></div>
+      <div class="field"><label>Status</label><div class="status-set" id="dr-status">${STATUSES.map(s=>`<button data-s="${s.id}" aria-pressed="${c.status===s.id}">${s.label}</button>`).join('')}</div></div>
+      <div class="field"><label for="dr-partner">Referral</label><select id="dr-partner"><option value="">Not referred</option>${partnerOpts.map(p=>`<option value="${p}" ${c.partner===p?'selected':''}>${PARTNER[p].label} · ${PARTNER[p].kind}</option>`).join('')}</select></div>
+      <div class="field"><label for="dr-note">Add a case note</label><textarea id="dr-note" placeholder="Internal note. Not visible to the worker or the operator."></textarea></div>
+      ${c.notes.length?`<div class="notes">${c.notes.map(n=>`<div class="note"><div class="m">${n.by} · ${fmtDT(n.ts)}</div>${esc(n.text)}</div>`).join('')}</div>`:''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn primary" id="dr-save">Save changes</button>
+        ${awaiting(c)?'<button class="btn" id="dr-contact">Record first contact</button>':''}
+      </div>
+    </div>
+  </aside>`;
+  let pending = c.status;
+  layer.querySelectorAll('#dr-status button').forEach(b=>b.onclick=()=>{ pending=b.dataset.s; layer.querySelectorAll('#dr-status button').forEach(x=>x.setAttribute('aria-pressed', x===b)); });
+  layer.querySelectorAll('[data-close]').forEach(b=>b.onclick=closeLayer);
+  $('#dr-save').onclick = () => {
+    const p = $('#dr-partner').value || null;
+    if (p && p!==c.partner){ c.partner=p; c.referredAt=NOW; c.partnerAck=null; if(pending==='new'||pending==='triaged') pending='referred'; }
+    if (!p) c.partner=null;
+    if (LIVE) NOW = Date.now();
+    if (pending!=='new' && c.contactH==null) c.contactH=(NOW-c.received)/HR;
+    if (pending==='resolved' && c.status!=='resolved') c.resolvedAt=NOW;
+    c.status=pending;
+    const note=$('#dr-note').value.trim(); if(note) c.notes.push({by:ME, ts:NOW, text:note});
+    refreshAll(); openCase(c.ref); toast('Case '+c.ref+' updated');
+    if (LIVE) apiPost({action:'update', ref:c.ref, status:c.status, partner:c.partner||'', officer:ME, note,
+      contactAt: c.contactH!=null ? iso(c.received + c.contactH*HR) : '', referredAt: iso(c.referredAt), resolvedAt: iso(c.resolvedAt)});
+  };
+  const rc = $('#dr-contact'); if (rc) rc.onclick = () => { if (LIVE) NOW = Date.now(); c.contactH=(NOW-c.received)/HR; c.status='triaged'; refreshAll(); openCase(c.ref); toast('First contact recorded for '+c.ref);
+    if (LIVE) apiPost({action:'update', ref:c.ref, status:'triaged', officer:ME, contactAt: iso(NOW)}); };
+  layer.querySelector('.x-btn').focus();
+}
+function closeLayer(){ $('#layer').innerHTML=''; }
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeLayer(); });
+
+function openLogCall(){
+  $('#layer').innerHTML = `<div class="scrim" data-close></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="lc-h">
+    <h3 id="lc-h">Log a hotline call</h3><p class="lede">Record a report taken by phone. The caller receives the case reference by SMS only if they agree to it.</p>
+    <div class="form-grid">
+      <div class="field"><label for="lc-cat">Nature of report</label><select id="lc-cat">${CATS.map(c=>`<option value="${c.id}">${c.label}</option>`).join('')}</select></div>
+      <div class="field"><label for="lc-op">Estate or factory</label><select id="lc-op">${OPS.map(o=>`<option value="${o.id}">${o.name}</option>`).join('')}</select></div>
+      <div class="field"><label for="lc-rt">Reporting basis</label><select id="lc-rt">${RTYPES.map(r=>`<option value="${r.id}">${r.label}</option>`).join('')}</select></div>
+      <div class="field"><label for="lc-urg">Is the caller safe right now?</label><select id="lc-urg"><option value="0">Yes, safe to continue</option><option value="1">No, needs help now (urgent)</option></select></div>
+      <div class="field full"><label for="lc-phone">Caller's number, if the caller agrees to be contacted</label><input type="text" id="lc-phone" inputmode="tel" placeholder="+2547..."></div>
+      <div class="field full"><label for="lc-sum">Summary</label><textarea id="lc-sum" placeholder="What happened, where, and what the caller is asking for"></textarea></div>
+    </div>
+    <div class="modal-foot"><button class="btn" data-close>Cancel</button><button class="btn primary" id="lc-save">Create case</button></div>
+  </div>`;
+  $('#layer').querySelectorAll('[data-close]').forEach(b=>b.onclick=closeLayer);
+  $('#lc-save').onclick = async () => {
+    if (LIVE) {
+      $('#lc-save').disabled = true;
+      const r = await apiPost({action:'create', category:$('#lc-cat').value, operatorId:$('#lc-op').value, reportType:$('#lc-rt').value, urgent:$('#lc-urg').value==='1', note:$('#lc-sum').value.trim(), phone:$('#lc-phone').value.trim(), officer:ME});
+      if (r && r.ref) { closeLayer(); toast('Case '+r.ref+' created'); await loadLive(true); openCase(r.ref); } else { $('#lc-save').disabled = false; }
+      return;
+    }
+    const c = { ref:'JC-26-'+String(seq++).padStart(4,'0'), received:NOW, cat:$('#lc-cat').value, op:$('#lc-op').value, county:OP[$('#lc-op').value].county, channel:'hotline', rtype:$('#lc-rt').value, urgent:$('#lc-urg').value==='1', officer:ME, contactH:0, status:'triaged', partner:null, partnerAck:null, notice:null, resolvedAt:null, notes:[] };
+    const s = $('#lc-sum').value.trim(); if(s) c.notes.push({by:ME, ts:NOW, text:s});
+    cases.unshift(c); BY_REF[c.ref]=c; refreshAll(); closeLayer(); toast('Case '+c.ref+' created'); openCase(c.ref);
+  };
+  $('#lc-cat').focus();
+}
+
+/* =========================================================
+   Accountability
+   ========================================================= */
+function renderAccountability(){
+  const rows = OPS.map(o=>opStats(o, 182)).sort((a,b)=>b.overdue-a.overdue || b.open-a.open);
+  $('#op-table').innerHTML = `<thead><tr><th>Operator</th><th class="r">Open cases</th><th class="r">Notices, 6 months</th><th class="r">Acknowledged in 14 days</th><th class="r">Overdue</th><th>Standing</th></tr></thead><tbody>${rows.map(s=>opRow(s,true)).join('')}</tbody>`;
+  if (!OP[selectedOp] || selectedOp==='__other') selectedOp = OPS[0] ? OPS[0].id : null;
+  if (!selectedOp) { $('#op-detail').innerHTML = '<div class="empty">Add operators to the Operators tab of the Google Sheet.</div>'; return; }
+  const s = opStats(OP[selectedOp], 182);
+  const actions = s.oc.filter(c=>c.notice && !c.notice.closedAt && c.status!=='resolved').sort((a,b)=>a.notice.due-b.notice.due);
+  const stage = c => { const n=c.notice; if (n.escalated) return {cls:'serious', label:'Escalated'}; if (NOW>n.due) return {cls:'crit', label:`${Math.round((NOW-n.due)/DAY)} days overdue`}; if (n.ackDays==null && NOW-n.issued>14*DAY) return {cls:'warn', label:'Not acknowledged'}; if (n.ackDays==null) return {cls:'muted', label:'Awaiting acknowledgement'}; return {cls:'good', label:`Due ${fmtShort(n.due)}`}; };
+  $('#op-detail').innerHTML = `
+    <div class="panel-head"><div><h2>${s.op.name}</h2><div class="hint">${s.op.type} · ${s.op.county} County · workforce of about ${s.op.workforce.toLocaleString('en-GB')}</div></div><span class="pill ${s.standing.cls}">${s.standing.ic}${s.standing.label}</span></div>
+    <div class="op-summary"><div><b>${s.notices.length}</b><span>Notices issued</span></div><div><b>${s.ackRate==null?'n/a':Math.round(s.ackRate*100)+'%'}</b><span>Acknowledged in 14 days</span></div><div><b>${actions.length}</b><span>Open actions</span></div><div><b style="${s.overdue?'color:var(--crit-ink)':''}">${s.overdue}</b><span>Overdue</span></div></div>
+    <div class="subh">Open remediation actions</div>
+    <div class="actions">${actions.length ? actions.slice(0,8).map(c=>{const st=stage(c); return `<div class="action"><div style="min-width:0"><button class="link mono" data-case="${c.ref}" style="font-size:12.5px">${c.ref}</button><div class="d">${CAT[c.cat].label} · ${c.rtype==='anonymous'?'pattern notice':'notice'} issued ${fmtShort(c.notice.issued)}</div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end"><span class="pill ${st.cls}">${st.label}</span>${isOverdue(c)&&!c.notice.escalated?`<button class="btn sm danger" data-escalate="${c.ref}">Escalate</button>`:''}</div></div>`}).join('') + (actions.length>8?`<div class="op-sub" style="text-align:center">and ${actions.length-8} more</div>`:'') : '<div class="empty">No open remediation actions.</div>'}</div>
+    <div class="subh" style="margin-top:20px">Escalation path</div>
+    <div class="ladder">
+      <div class="step done"><span class="b">1</span><div><h4>Notice issued</h4><p>Sent to the estate manager or factory unit manager, with a copy to the group compliance lead.</p></div></div>
+      <div class="step done"><span class="b">2</span><div><h4>Acknowledgement within 14 days</h4><p>The operator names a responsible officer and confirms receipt.</p></div></div>
+      <div class="step"><span class="b">3</span><div><h4>Remediation within 30 days</h4><p>Corrective action is agreed and verified with the worker's consent, or through a site visit where the report is anonymous.</p></div></div>
+      <div class="step"><span class="b">4</span><div><h4>Escalation</h4><p>Overdue actions are referred to the operator's buyers and certification body, and where the law is engaged, to the county labour office.</p></div></div>
+    </div>`;
+}
+
+/* =========================================================
+   Partners
+   ========================================================= */
+function renderPartners(){
+  const rows = PARTNERS.map(p=>{ const pc=cases.filter(c=>c.partner===p.id); const active=pc.filter(c=>c.status==='referred'||c.status==='in_progress').length; const acks=pc.filter(c=>c.partnerAck!=null).map(c=>c.partnerAck); const within=pc.filter(c=>c.referredAt && NOW-c.referredAt>7*DAY); const rate = within.length? within.filter(c=>c.partnerAck!=null&&c.partnerAck<=7).length/within.length : null; return {p,active,med:median(acks),rate,total:pc.length}; });
+  $('#partner-table').innerHTML = `<thead><tr><th>Partner</th><th>Coverage</th><th class="r">Referrals, 6 months</th><th class="r">Median days to acknowledge</th><th class="r">Acknowledged in 7 days</th><th>Active caseload</th></tr></thead><tbody>${
+    rows.map(r=>{ const load=r.active/r.p.cap; const st = load>=1?{c:'--crit',l:'At capacity',cls:'crit'}:load>=.75?{c:'--warn',l:'Stretched',cls:'warn'}:{c:'--good',l:'Available',cls:'good'};
+      return `<tr style="cursor:default"><td><div class="op-name">${r.p.label}</div><div class="op-sub">${r.p.kind}</div></td><td style="white-space:normal;max-width:220px">${r.p.counties.length===COUNTIES.length?'All five counties':r.p.counties.join(', ')}</td><td class="r">${r.total}</td><td class="r">${r.med==null?'n/a':(Math.round(r.med*10)/10)}</td><td class="r">${r.rate==null?'n/a':Math.round(r.rate*100)+'%'}</td>
+      <td><div class="cap"><span class="track"><span class="fill" style="width:${Math.min(100,load*100)}%;background:var(${st.c})"></span></span><span class="num" style="font-size:12.5px;white-space:nowrap">${r.active} of ${r.p.cap}</span><span class="pill ${st.cls}">${st.l}</span></div></td></tr>`; }).join('')
+  }</tbody>`;
+}
+
+/* =========================================================
+   Insights
+   ========================================================= */
+function renderInsights(){
+  const win = cases.filter(c=>inWindow(c,182));
+  const cells = COUNTIES.map(k=>CATS.map(c=>win.filter(x=>x.county===k && x.cat===c.id).length));
+  const max = Math.max(...cells.flat());
+  const step = v => Math.min(5, Math.floor(v/max*5.999));
+  $('#heatmap').innerHTML = `<thead><tr><th></th>${CATS.map(c=>`<th>${c.short}</th>`).join('')}<th>Total</th></tr></thead><tbody>${
+    COUNTIES.map((k,i)=>`<tr><th class="rowh">${k}</th>${cells[i].map((v,j)=> v<5 ? `<td class="sup" data-tip="${k}, ${CATS[j].short}: fewer than five reports, suppressed">&lt;5</td>` : `<td class="${step(v)>=4?'hi':''}" style="background:var(--hm${step(v)})" data-tip="${k}, ${CATS[j].short}: ${v} reports">${v}</td>`).join('')}<td style="background:transparent;font-weight:600">${sum(cells[i])}</td></tr>`).join('')
+  }</tbody>`;
+  $('#hm-scale').innerHTML = `<span>Fewer</span><span class="ramp">${[0,1,2,3,4,5].map(i=>`<i style="background:var(--hm${i})"></i>`).join('')}</span><span>More reports</span><span style="margin-left:14px;display:inline-flex;align-items:center;gap:6px"><i style="width:22px;height:10px;border-radius:2px;display:block;background:repeating-linear-gradient(135deg,var(--sunken) 0 3px,var(--surface-2) 3px 6px);border:1px solid var(--border)"></i>Suppressed, fewer than five</span>`;
+
+  const res = CATS.map(c=>{ const d=cases.filter(x=>x.cat===c.id && x.status==='resolved' && x.resolvedAt).map(x=>(x.resolvedAt-x.received)/DAY); return {c, n:d.length, q1:quant(d,.25), med:median(d), q3:quant(d,.75)}; }).filter(r=>r.n>0);
+  if (!res.length) $('#resolution').innerHTML = '<div class="empty">No resolved cases yet.</div>';
+  else { const mx = Math.max(10, Math.ceil(Math.max(...res.map(r=>r.q3))/10)*10);
+  const ticks = [0, mx/4, mx/2, mx*3/4, mx];
+  $('#resolution').innerHTML = res.map(r=>`<div class="range" data-tip="${r.c.short}: median ${Math.round(r.med)} days, middle half ${Math.round(r.q1)} to ${Math.round(r.q3)} days, ${r.n} resolved cases"><span class="l">${r.c.short}</span><span class="axis"><span class="base"></span><span class="iqr" style="left:${r.q1/mx*100}%;width:${(r.q3-r.q1)/mx*100}%;background:color-mix(in srgb,var(${r.c.col}) 35%,transparent)"></span><span class="med" style="left:${r.med/mx*100}%;background:var(${r.c.col})"></span></span><span class="v">${Math.round(r.med)} days</span></div>`).join('')
+    + `<div class="range-ticks"><span></span><span class="tk">${ticks.map(t=>`<span style="left:${t/mx*100}%">${Math.round(t)}</span>`).join('')}</span><span></span></div>`; }
+
+  const rates = OPS.map(o=>({o, v:win.filter(c=>c.op===o.id).length/o.workforce*1000})).sort((a,b)=>b.v-a.v);
+  const rmax = Math.max(...rates.map(r=>r.v)) || 1;
+  $('#rate-bars').innerHTML = rates.map(r=>`<div class="hbar" style="grid-template-columns:minmax(120px,190px) minmax(0,1fr) 44px"><span class="l" title="${r.o.name}">${r.o.name}</span><span class="track"><span class="fill" style="width:${r.v/rmax*100}%;background:var(${r.o.type==='Smallholder factory'?'--s2':'--s1'})"></span></span><span class="v">${r.v.toFixed(1)}</span></div>`).join('')
+    + `<div class="legend" style="margin-top:6px"><span><i class="sw" style="background:var(--s1)"></i>Multinational estate</span><span><i class="sw" style="background:var(--s2)"></i>Smallholder factory</span></div>`;
+}
+
+/* =========================================================
+   Worker channel
+   ========================================================= */
+function renderChannel(){
+  if (LIVE) {
+    const u = cases.filter(c=>inWindow(c,30) && c.channel==='ussd');
+    const urgent = u.filter(c=>c.urgent).length, anon = u.filter(c=>c.rtype==='anonymous').length;
+    $('#funnel').innerHTML = `<div class="hbars">${[['Reports completed by USSD',u.length],['Of which urgent',urgent],['Of which anonymous',anon],['Named an estate not on the list',u.filter(c=>c.op==='__other').length]].map(([l,n])=>`<div class="hbar" style="grid-template-columns:minmax(150px,230px) minmax(0,1fr) 44px"><span class="l">${l}</span><span class="track"><span class="fill" style="width:${u.length?n/u.length*100:0}%"></span></span><span class="v">${n}</span></div>`).join('')}</div><p style="margin:12px 0 0;font-size:12.5px;color:var(--ink-3);line-height:1.5">Drop-off by screen, session counts and language share need session events. Connect the Events URL in Africa's Talking to record them (README, next steps).</p>`;
+    $('#ussd-kv').innerHTML = `<dt>USSD reports, 30 days</dt><dd>${u.length}</dd><dt>Urgent</dt><dd>${urgent}</dd>`;
+    $('#lang-mix').innerHTML = '<div class="empty">Not yet recorded. The starter menu is in English only.</div>';
+    $('#rights-bars').innerHTML = '<div class="empty">Not yet recorded. Needs session events.</div>';
+    return;
+  }
+  const reports30 = cases.filter(c=>inWindow(c,30) && c.channel==='ussd').length;
+  const steps = [
+    {l:'Chose "Report an incident"', r:1}, {l:'Chose how to report', r:.9}, {l:'Answered the safety question', r:.84},
+    {l:'Chose the nature of report', r:.75}, {l:'Named the estate or factory', r:.63},
+  ];
+  const start = Math.round(reports30/.63*1.0);
+  const vals = steps.map(s=>Math.round(start*s.r)); vals[vals.length-1]=reports30;
+  const withRef = [...steps, {l:'Received a case reference', r:0}];
+  const all = [...vals, reports30]; if (!all[0]) all[0] = 1;
+  $('#funnel').innerHTML = withRef.map((s,i)=>`<div class="fs"><span>${s.l}</span><span class="track"><span class="fill" style="width:${all[i]/all[0]*100}%;${i===withRef.length-1?'background:var(--brand)':''}"></span></span><span class="v"><b>${all[i]}</b><span>${Math.round(all[i]/all[0]*100)}% of starts</span></span></div>`).join('')
+    + `<p style="margin:10px 0 0;font-size:12.5px;color:var(--ink-3);line-height:1.5">The largest drop comes at naming the estate or factory. Offering a numbered list of nearby operators in place of free text is the next change planned for the menu.</p>`;
+  const sessions = Math.round(start*2.7);
+  $('#ussd-kv').innerHTML = `<dt>Sessions, 30 days</dt><dd>${sessions.toLocaleString('en-GB')}</dd><dt>Reports completed</dt><dd>${reports30}</dd><dt>Status checks by reference</dt><dd>${Math.round(sessions*.21)}</dd><dt>Median session length</dt><dd>74 s</dd>`;
+  $('#lang-mix').innerHTML = mixBlock([{label:'Kiswahili',n:48,col:'--s1'},{label:'English',n:21,col:'--s2'},{label:'Kipsigis',n:19,col:'--s3'},{label:'Ekegusii',n:12,col:'--s4'}]);
+  const rights = [{l:'Sexual harassment at work',n:Math.round(sessions*.14)},{l:'Fair wages and contracts',n:Math.round(sessions*.11)},{l:'Protection from retaliation',n:Math.round(sessions*.08)},{l:'Safe working conditions',n:Math.round(sessions*.06)}];
+  const rm = Math.max(...rights.map(r=>r.n));
+  $('#rights-bars').innerHTML = rights.map(r=>`<div class="hbar" style="grid-template-columns:minmax(140px,200px) minmax(0,1fr) 44px"><span class="l">${r.l}</span><span class="track"><span class="fill" style="width:${r.n/rm*100}%"></span></span><span class="v">${r.n}</span></div>`).join('');
+}
+
+/* =========================================================
+   Wiring
+   ========================================================= */
+function refreshAll(){
+  $('#ov-sub').textContent = new Date(NOW).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) + ' · ' + (LIVE ? 'live cases' : 'sample data');
+  renderKPIs(); renderWeekly(); renderQueue(); renderPipeline(); renderChannelMix(); renderCountyBars(); renderOpMini();
+  renderCases(); renderAccountability(); renderPartners(); renderInsights(); renderChannel();
+}
+function go(v){
+  view = v; document.querySelectorAll('[data-v]').forEach(s=>s.hidden = s.id!=='view-'+v);
+  document.querySelectorAll('#nav button').forEach(b=>{ if(b.dataset.view===v) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
+  try{ localStorage.setItem('jc-view', v); }catch(e){}
+  if (v==='overview') renderWeekly();
+  window.scrollTo({top:0});
+}
+document.getElementById('nav').addEventListener('click', e=>{ const b=e.target.closest('button[data-view]'); if(b){ attentionFilter=false; go(b.dataset.view); renderCases(); } });
+document.addEventListener('click', e=>{
+  const g = e.target.closest('[data-goto]'); if (g){ attentionFilter = g.dataset.filter==='attention'; if(attentionFilter){ $('#f-status').value=''; $('#f-urgent').checked=false; } renderCases(); go(g.dataset.goto); return; }
+  const cs = e.target.closest('[data-case]'); if (cs){ openCase(cs.dataset.case); return; }
+  const esc_ = e.target.closest('[data-escalate]'); if (esc_){ const c=BY_REF[esc_.dataset.escalate]; c.notice.escalated=true; c.notice.escalatedAt=NOW; refreshAll(); toast(c.ref+' escalated to buyers, certifier and county labour office'); return; }
+  const op = e.target.closest('tr[data-op]'); if (op){ selectedOp = op.dataset.op; if (view!=='accountability') go('accountability'); renderAccountability(); return; }
+});
+document.addEventListener('mousemove', e=>{ const t=e.target.closest('[data-tip]'); if(t) showTip(`<div class="t" style="margin:0;font-weight:500">${t.dataset.tip}</div>`, e); else if(!e.target.closest('#weekly-chart')) hideTip(); });
+$('#range-seg').addEventListener('click', e=>{ const b=e.target.closest('button[data-range]'); if(!b) return; range=+b.dataset.range; $('#range-seg').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', x===b)); renderWeekly(); renderPipeline(); renderChannelMix(); renderCountyBars(); renderOpMini(); });
+['#f-q','#f-status','#f-cat','#f-op','#f-urgent'].forEach(s=>$(s).addEventListener('input', ()=>{ attentionFilter=false; caseLimit=40; renderCases(); }));
+$('#more-cases').onclick = ()=>{ caseLimit += 40; renderCases(); };
+$('#global-search').addEventListener('keydown', e=>{ if(e.key==='Enter'){ const q=e.target.value.trim(); const hit=BY_REF[q.toUpperCase()]; if(hit){ openCase(hit.ref); return; } $('#f-q').value=q; attentionFilter=false; renderCases(); go('cases'); } });
+$('#bell').onclick = ()=>{ attentionFilter=true; renderCases(); go('cases'); };
+$('#log-call').onclick = openLogCall;
+let rz; addEventListener('resize', ()=>{ clearTimeout(rz); rz=setTimeout(renderWeekly, 120); });
+
+/* =========================================================
+   Live data: Apps Script backend
+   ========================================================= */
+const iso = ms => ms ? new Date(ms).toISOString() : '';
+let sessionKey = '';
+function keyGet(){ try { return localStorage.getItem('jc-key') || sessionKey; } catch(e){ return sessionKey; } }
+function keySet(k){ sessionKey = k; try { if (k) localStorage.setItem('jc-key', k); else localStorage.removeItem('jc-key'); } catch(e){} }
+function setSync(text, state){ const el = $('#sync'); el.className = 'sync ' + (state||''); el.querySelector('span').textContent = text; }
+function askKey(msg){
+  $('#layer').innerHTML = `<div class="scrim"></div><div class="modal" role="dialog" aria-modal="true" aria-labelledby="k-h">
+    <h3 id="k-h">Sign in to Justicore</h3><p class="lede">${msg ? esc(msg) : 'Enter the access key issued to case officers.'}</p>
+    <div class="field"><label for="k-in">Access key</label><input type="text" id="k-in" autocomplete="off" spellcheck="false"></div>
+    <div class="modal-foot"><button class="btn primary" id="k-go">Open dashboard</button></div></div>`;
+  const go = () => { const v = $('#k-in').value.trim(); if (!v) return; keySet(v); closeLayer(); loadLive(true); };
+  $('#k-go').onclick = go; $('#k-in').addEventListener('keydown', e=>{ if(e.key==='Enter') go(); }); $('#k-in').focus();
+}
+function fromApi(r){
+  const t = v => v ? new Date(v).getTime() : null;
+  const received = t(r.createdAt) || Date.now();
+  const op = r.operatorId && OP[r.operatorId] ? String(r.operatorId) : '__other';
+  return { ref:String(r.ref), received, cat: CAT[r.category] ? r.category : 'other', catUnknown: !r.category,
+    op, opText: r.operatorName || '', county: r.county || (OP[op] && OP[op].county) || 'Unknown',
+    channel: CH[r.channel] ? r.channel : 'ussd', rtype: RT[r.reportType] ? r.reportType : 'anonymous', urgent: !!r.urgent,
+    officer: r.officer || 'Unassigned', contactH: r.contactAt ? (t(r.contactAt)-received)/HR : null,
+    status: STATUS[r.status] ? r.status : 'new', partner: PARTNER[r.partner] ? r.partner : null, referredAt: t(r.referredAt),
+    partnerAck: null, notice: null, resolvedAt: t(r.resolvedAt), phone: r.phone ? String(r.phone) : '', consent: !!r.callbackConsent,
+    notes: (Array.isArray(r.notes) ? r.notes : []).map(n=>({by:n.by, ts:t(n.ts), text:n.text})) };
+}
+let loading = false;
+async function loadLive(force){
+  const key = keyGet(); if (!key) { askKey(); return; }
+  if (loading && !force) return; loading = true; setSync('Syncing');
+  try {
+    const res = await fetch(CONFIG.API_URL + '?key=' + encodeURIComponent(key));
+    const data = await res.json();
+    if (data.error === 'unauthorised') { keySet(''); askKey('That access key was not accepted. Check it and try again.'); return; }
+    if (data.error) throw new Error(data.error);
+    NOW = Date.now();
+    OPS = (data.operators||[]).map(o=>({id:String(o.id), name:String(o.name), type:o.type||'Operator', county:o.county||'Unknown', workforce:Number(o.workforce)||1, resp:0, w:1}));
+    OP = Object.fromEntries(OPS.map(o=>[o.id,o]));
+    OP.__other = {id:'__other', name:'Not on the operator list', type:'Unlisted', county:'Unknown', workforce:1};
+    cases.length = 0; (data.cases||[]).forEach(r=>cases.push(fromApi(r)));
+    cases.sort((a,b)=>b.received-a.received);
+    COUNTIES = [...new Set(OPS.map(o=>o.county).concat(cases.map(c=>c.county)))];
+    Object.keys(BY_REF).forEach(k=>delete BY_REF[k]); cases.forEach(c=>BY_REF[c.ref]=c);
+    const keep = [$('#f-cat').value, $('#f-op').value]; populateFilters(); $('#f-cat').value = keep[0]; $('#f-op').value = keep[1];
+    refreshAll();
+    setSync('Live · ' + new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}), 'live');
+  } catch (err) {
+    console.error(err); setSync('Offline · retrying', 'err');
+  } finally { loading = false; }
+}
+async function apiPost(payload){
+  try {
+    const res = await fetch(CONFIG.API_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(Object.assign({key:keyGet()}, payload)) });
+    const data = await res.json();
+    if (data.error) { toast('Not saved: ' + data.error); return null; }
+    setTimeout(loadLive, 400);
+    return data;
+  } catch (err) { toast('Not saved. Check the connection and try again.'); return null; }
+}
+if (LIVE) {
+  $('#me-name').textContent = CONFIG.OFFICER;
+  $('#me-initials').textContent = CONFIG.OFFICER.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  $('#foot-note').textContent = 'Live data from the Justicore case register. Handle all case information in line with the data protection policy.';
+}
+
+populateFilters();
+refreshAll();
+if (LIVE) { setSync('Connecting'); loadLive(true); setInterval(loadLive, CONFIG.REFRESH_SECONDS*1000); }
+
+try{ const v=localStorage.getItem('jc-view'); if(v && document.getElementById('view-'+v)) go(v); }catch(e){}
+</script>
+
+</body>
+</html>
